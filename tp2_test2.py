@@ -1,77 +1,61 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
+import os
+from sklearn.cluster import KMeans
 
-# Charger l'image
-image = cv2.imread("./Images/Echantillion1Mod2_301.png")
-image_gray = cv2.imread("./Images/Echantillion1Mod2_301.png", cv2.IMREAD_GRAYSCALE)
+def process_image(file_path):
+    # Lire l'image
+    image = cv2.imread(file_path)
+    # Convertir l'image en RGB
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Appliquer un filtre Gaussien pour réduire le bruit
+    blurred = cv2.GaussianBlur(image_rgb, (5, 5), 0)
 
-# Convertir l'image en espace couleur Lab
-lab_image = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
-a_lab = lab_image[:, :, 1]
-b_lab = lab_image[:, :, 2]
+    # Reshaper l'image pour qu'elle soit une liste de pixels pour k-means
+    pixels = blurred.reshape((-1, 3))
+    
+    # Utiliser KMeans pour segmenter l'image en clusters de couleur
+    kmeans = KMeans(n_clusters=20) # Le nombre de clusters (grains) est un paramètre
+    kmeans.fit(pixels)
+    dominant_colors = np.array(kmeans.cluster_centers_, dtype='uint8')
+    
+    # Labels pour chaque pixel
+    labels = kmeans.labels_
+    # Reshaper les labels en une image
+    labels_image = labels.reshape(blurred.shape[:2])
+    
+    # Créer un dataframe pour stocker les résultats
+    df = pd.DataFrame(columns=['R_mean', 'G_mean', 'B_mean'])
 
-# Utiliser la détection de contours pour définir des régions d'intérêt
-# Convertir l'image en niveaux de gris
-edges = cv2.Canny(image_gray, 100, 200)
-contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print(f"Nombre de grains: {len(dominant_colors)}")
+    print(f"Valeurs des couleurs dominantes: {dominant_colors}")
 
-nColors = len(contours)
-sample_regions = np.zeros((image.shape[0], image.shape[1], nColors), dtype=np.uint8)
+    # Pour chaque couleur dominante, trouver les pixels correspondants et calculer la moyenne RGB
+    tolerance = 20  # Ajustez la tolérance en fonction de la variabilité des couleurs dans vos images
+    for color in dominant_colors:
+        # Créer un masque basé sur la tolérance de couleur
+        diff = np.abs(image_rgb.astype(np.int) - color.astype(np.int))
+        mask = np.all(diff <= tolerance, axis=-1)
+        print(f"Nombre de pixels pour la couleur {color}: {np.sum(mask)}")
+        # Trouver les pixels de l'image originale où le masque est True
+        selected_pixels = image_rgb[mask]
+        print(f"Nombre de pixels sélectionnés: {len(selected_pixels)}")
+        if len(selected_pixels) > 0:
+            # Calculer les moyennes de ces pixels
+            mean_colors = np.mean(selected_pixels, axis=0)
+            df = df.append({'R_mean': mean_colors[0], 'G_mean': mean_colors[1], 'B_mean': mean_colors[2]}, ignore_index=True)
+    
+    return df
 
-for count, contour in enumerate(contours):
-    mask = cv2.fillPoly(np.zeros_like(image_gray), [contour], 1).astype(bool)
-    sample_regions[:, :, count] = mask
+# Parcourir le dossier "./Images" et appliquer la fonction sur chaque image
+results = {}
+for filename in os.listdir("./Images"):
+    if filename.endswith(".jpg") or filename.endswith(".png"):
+        filepath = os.path.join("./Images", filename)
+        results[filename] = process_image(filepath)
 
-
-# Convertir l'image en espace couleur Lab
-lab_image = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
-a = lab_image[:, :, 1]
-b = lab_image[:, :, 2]
-color_markers = np.zeros((nColors, 2))
-
-for count in range(nColors):
-    color_markers[count, 0] = np.mean(a[sample_regions[:, :, count]])
-    color_markers[count, 1] = np.mean(b[sample_regions[:, :, count]])
-
-print(color_markers[1, 0], color_markers[1, 1])
-
-color_labels = np.arange(nColors)
-a = a.astype(float)
-b = b.astype(float)
-distance = np.zeros((a.shape[0], a.shape[1], nColors))
-
-for count in range(nColors):
-    distance[:, :, count] = np.sqrt((a - color_markers[count, 0])**2 + (b - color_markers[count, 1])**2)
-
-label = np.argmin(distance, axis=2)
-label = color_labels[label]
-
-rgb_label = np.repeat(label[:, :, np.newaxis], 3, axis=2)
-segmented_images = np.zeros((image.shape[0], image.shape[1], 3, nColors), dtype=np.uint8)
-
-for count in range(nColors):
-    color = np.copy(image)
-    color[rgb_label != color_labels[count]] = 0
-    segmented_images[:, :, :, count] = color
-
-segmented_images = segmented_images.transpose(3, 0, 1, 2)
-
-plt.figure()
-plt.title("Montage of Red, Green, Purple, Magenta, and Yellow Objects, and Background")
-montage = np.hstack(segmented_images)
-plt.imshow(montage.transpose(1, 2, 0))
-plt.show()
-
-purple = "#774998"
-plot_labels = ["k", "r", "g", purple, "m", "y"]
-
-plt.figure()
-for count in range(nColors):
-    plot_label = plot_labels[count]
-    plt.plot(a[label == count], b[label == count], ".", markersize=2, markeredgecolor=plot_label, markerfacecolor=plot_label)
-
-plt.title("Scatterplot of Segmented Pixels in a*b* Space")
-plt.xlabel("a* Values")
-plt.ylabel("b* Values")
-plt.show()
+# Affichage des résultats
+for filename, df in results.items():
+    print(f"Résultats pour {filename}:")
+    print(df)
