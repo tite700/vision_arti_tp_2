@@ -5,11 +5,13 @@ import pandas as pd
 from skimage.segmentation import slic, mark_boundaries
 from skimage.color import rgb2gray
 from skimage import morphology
-from skimage.filters import threshold_otsu
 
 # Chemin vers le dossier contenant les images
 folder_path = 'Images'
 
+# Créer un dossier pour stocker les images résultantes
+result_folder = 'Images_Résultat'
+os.makedirs(result_folder, exist_ok=True)
 
 # Initialiser un DataFrame pour stocker les moyennes des canaux BGR de chaque grain
 data = pd.DataFrame()
@@ -34,12 +36,19 @@ for filename in os.listdir(folder_path):
             segments = slic(image, n_segments=100, sigma=5)
 
             # Appliquer une opération de binarisation pour segmenter les grains
-            threshold_value = threshold_otsu(gray_image)
-            #threshold_value = 80
+            threshold_value = 70
             binary_image = gray_image > threshold_value
 
+            # Appliquer une opération de fermeture pour éliminer les petits trous dans les grains
+            kernel = np.ones((3, 3), np.uint8)
+            closing = cv2.morphologyEx(binary_image.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
+
             # Dessiner les contours des segments sur l'image originale
-            segment_contours = mark_boundaries(image, binary_image)
+            segment_contours = mark_boundaries(image, closing)
+
+            # Enregistrer l'image résultante dans le dossier "Images_Résultat"
+            result_image_path = os.path.join(result_folder, filename)
+            cv2.imwrite(result_image_path, segment_contours)
 
             cv2.imshow('Segmentation', segment_contours)
             cv2.waitKey(0)

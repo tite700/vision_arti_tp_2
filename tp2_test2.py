@@ -4,26 +4,25 @@ import matplotlib.pyplot as plt
 
 # Charger l'image
 image = cv2.imread("./Images/Echantillion1Mod2_301.png")
-
-# Afficher l'image
-plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-plt.title("image")
-plt.show()
+image_gray = cv2.imread("./Images/Echantillion1Mod2_301.png", cv2.IMREAD_GRAYSCALE)
 
 # Convertir l'image en espace couleur Lab
 lab_image = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
-a = lab_image[:, :, 1]
-b = lab_image[:, :, 2]
+a_lab = lab_image[:, :, 1]
+b_lab = lab_image[:, :, 2]
 
 # Utiliser la détection de contours pour définir des régions d'intérêt
-edges = cv2.Canny(a, b, 100, 200)
+# Convertir l'image en niveaux de gris
+edges = cv2.Canny(image_gray, 100, 200)
 contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 nColors = len(contours)
-sample_regions = np.zeros((image.shape[0], image.shape[1], nColors), dtype=bool)
+sample_regions = np.zeros((image.shape[0], image.shape[1], nColors), dtype=np.uint8)
 
 for count, contour in enumerate(contours):
-    sample_regions[:, :, count] = cv2.fillPoly(np.zeros_like(image), [contour], 1).astype(bool)
+    mask = cv2.fillPoly(np.zeros_like(image_gray), [contour], 1).astype(bool)
+    sample_regions[:, :, count] = mask
+
 
 # Convertir l'image en espace couleur Lab
 lab_image = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
