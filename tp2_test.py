@@ -26,31 +26,34 @@ for filename in os.listdir(folder_path):
         image = cv2.imread(image_path)
 
         if image is not None:
-            # Augmenter le contraste de l'image
-            image = cv2.convertScaleAbs(image, alpha=1.5, beta=0)
+            
+            # Appliquer SLIC
+            segments = slic(image, n_segments=30, compactness=10, sigma=1)
 
-            # Convertir l'image en niveaux de gris pour simplifier la segmentation
-            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            # Appliquer Fz
+            segments = fz
 
-            # Appliquer un algorithme de segmentation SLIC K-means pour détecter les grains
-            segments = slic(image, n_segments=100, sigma=5)
+            #essayer fz + afficher resultats segments
 
-            # Appliquer une opération de binarisation pour segmenter les grains
-            threshold_value = 70
-            binary_image = gray_image > threshold_value
+            #label region
+            #pour chaque region segmentee tu vas faire un mask
+            #recup moyenne
 
-            # Appliquer une opération de fermeture pour éliminer les petits trous dans les grains
-            kernel = np.ones((3, 3), np.uint8)
-            closing = cv2.morphologyEx(binary_image.astype(np.uint8), cv2.MORPH_CLOSE, kernel)
+            # Créer une image avec les contours des segments
+            image_segmented = mark_boundaries(image, segments)
 
-            # Dessiner les contours des segments sur l'image originale
-            segment_contours = mark_boundaries(image, closing)
+            # Enregistrer l'image avec le grain segmenté
+            result_path = os.path.join(result_folder, filename)
 
-            # Enregistrer l'image résultante dans le dossier "Images_Résultat"
-            result_image_path = os.path.join(result_folder, filename)
-            cv2.imwrite(result_image_path, segment_contours)
+            # Calculer la moyenne des canaux BGR
+            mean_bgr = np.mean(image, axis=(0, 1))
+            mean_bgr_list.append(mean_bgr)
 
-            cv2.imshow('Segmentation', segment_contours)
+            # Afficher les moyennes BGR
+            print(f'{filename} : {mean_bgr}')
+
+            # Afficher l'image
+            cv2.imshow(filename, image)
             cv2.waitKey(0)
 
 cv2.destroyAllWindows()
