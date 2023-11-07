@@ -14,8 +14,12 @@ img = cv2.imread('Images/Echantillion1Mod2_301.png')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = img_as_float(img)
 
+# segments_fz = felzenszwalb(img, scale=100, sigma=0.5, min_size=50)
+# segments_slic = slic(img, n_segments=250, compactness=10, sigma=1)
+# segments_quick = quickshift(img, kernel_size=3, max_dist=6, ratio=0.5)
+
 segments_fz = felzenszwalb(img, scale=250, sigma=0.55, min_size=200)
-segments_slic = slic(img, n_segments=100, compactness=10, sigma=1)
+segments_slic = slic(img, n_segments=40, compactness=12, sigma=1)
 segments_quick = quickshift(img, kernel_size=8, max_dist=6, ratio=0.5)
 
 print("Felzenszwalb's number of segments: %d" % len(np.unique(segments_fz)))
