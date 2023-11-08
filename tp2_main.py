@@ -62,16 +62,8 @@ for filename in os.listdir(folder_path):
             # Stocker le DataFrame individuel dans le dictionnaire
             image_dataframes[filename] = data
 
-<<<<<<<< HEAD:tp2_main.py
 # Afficher les DataFrames individuels pour chaque image
 for filename, data in image_dataframes.items():
     print(f"Image: {filename}")
     data.columns = ["Moyenne de Bleu", "Moyenne de Vert", "Moyenne de Rouge"]
     print(tabulate(data, headers='keys', tablefmt='fancy_grid'))
-========
-
-# Afficher le DataFrame 
-data.columns = ["Moyenne de Bleu", "Moyenne de Vert", "Moyenne de Rouge"]
-data.index = [f'Grain {i+1}' for i in range(len(data))]
-print(tabulate(data, headers='keys', tablefmt='fancy_grid'))
->>>>>>>> a52acd33a288935012fdb08216242c10736ee6ae:tp2_main_fz.py

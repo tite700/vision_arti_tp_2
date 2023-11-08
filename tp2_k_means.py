@@ -16,7 +16,7 @@ def process_image(file_path):
     pixels = blurred.reshape((-1, 3))
     
     # Utiliser KMeans pour segmenter l'image en clusters de couleur
-    kmeans = KMeans(n_clusters=20) # Le nombre de clusters (grains) est un paramètre
+    kmeans = KMeans(n_clusters=40) # Le nombre de clusters (grains) est un paramètre
     kmeans.fit(pixels)
     dominant_colors = np.array(kmeans.cluster_centers_, dtype='uint8')
     
@@ -32,7 +32,7 @@ def process_image(file_path):
     print(f"Valeurs des couleurs dominantes: {dominant_colors}")
 
     # Pour chaque couleur dominante, trouver les pixels correspondants et calculer la moyenne RGB
-    tolerance = 20  # Ajustez la tolérance en fonction de la variabilité des couleurs dans vos images
+    tolerance = 20
     for color in dominant_colors:
         # Créer un masque basé sur la tolérance de couleur
         diff = np.abs(image_rgb.astype(np.int) - color.astype(np.int))
