@@ -209,7 +209,7 @@ for filename in os.listdir(folder_path):
         image = cv2.imread(image_path)
 
         if image is not None:
-            segment_contours = algorithm_canny(image, show_img=False)
+            segment_contours = algorithm_watershed(image, show_img=False)
             cv2.imshow('segment_contours', segment_contours)
             cv2.waitKey(0)
 
